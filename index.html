@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>アンケートにご協力ください</title>
+<style>
+:root{--bg:#f5f5f4;--fg:#292524;--card:#ffffff;--bd:#d6d3d1;--acc:#ea580c;--mute:#78716c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1917;--fg:#f5f5f4;--card:#292524;--bd:#44403c;--acc:#fb923c;--mute:#a8a29e}}
+:root[data-theme="dark"]{--bg:#1c1917;--fg:#f5f5f4;--card:#292524;--bd:#44403c;--acc:#fb923c;--mute:#a8a29e}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;display:flex;justify-content:center}
+main{width:100%;max-width:440px;padding:24px 18px 40px}
+.hide{display:none}
+.survey{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:22px 18px}
+.tag{font-size:12px;color:var(--mute);letter-spacing:.05em;margin:0 0 6px}
+h1{font-size:21px;margin:0 0 10px;line-height:1.4}
+.q{font-size:16px;font-weight:700;margin:20px 0 12px}
+.disc{font-size:12px;color:var(--mute);margin:0;line-height:1.6;border-left:3px solid var(--bd);padding-left:10px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;padding:14px 12px;margin:0 0 8px;background:transparent;color:var(--fg);border:1.5px solid var(--bd);border-radius:10px;font-size:16px;text-align:left;cursor:pointer}
+.opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--bd);flex:none}
+.opt.sel{border-color:var(--acc)}
+.opt.sel .dot{border-color:var(--acc);background:radial-gradient(var(--acc) 0 45%,transparent 50%)}
+.submit{width:100%;margin-top:14px;padding:14px;border:none;border-radius:10px;background:var(--acc);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+.submit:disabled{opacity:.35;cursor:default}
+.center{text-align:center}
+.wheelbox{position:relative;width:min(84vw,320px);aspect-ratio:1;margin:26px auto 16px}
+.pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:30px;z-index:3;color:var(--acc)}
+.wheel{position:absolute;inset:0;border-radius:50%;border:6px solid var(--fg);background:conic-gradient(#fde68a 0 288deg,#fb923c 288deg 312deg,#38bdf8 312deg 336deg,#f472b6 336deg 360deg)}
+.lab{position:absolute;left:50%;top:50%;width:110px;margin-left:-55px;margin-top:-16px;text-align:center;font-weight:800;color:#292524;line-height:1.2}
+.lab.big{font-size:17px}
+.lab.sm{width:30px;margin-left:-15px;margin-top:-15px;font-size:22px}
+.hub{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px;border-radius:50%;background:var(--fg);z-index:2}
+.legend{font-size:13px;color:var(--mute);line-height:1.7}
+.res{font-size:68px;margin:8px 0}
+.rname{font-size:26px;font-weight:800;margin:0 0 8px}
+.rmsg{color:var(--mute);margin:0 0 22px;line-height:1.6}
+.again{padding:12px 22px;border-radius:999px;border:2px solid var(--acc);background:transparent;color:var(--acc);font-size:15px;font-weight:600;cursor:pointer}
+.note{font-size:13px;color:var(--mute)}
+</style>
+</head>
+<body>
+<main>
+  <section id="pick" class="survey">
+    <p class="tag">お客様満足度調査</p>
+    <h1>アンケートにご協力ください</h1>
+    <p class="disc">※本アンケートの回答は、今後の一切の事柄と関係ありません。</p>
+    <p class="q">Q. 今のあなたの気分に最も近いものを1つお選びください。</p>
+    <div id="opts"></div>
+    <button class="submit" id="submit" disabled>回答を送信する</button>
+  </section>
+
+  <section id="spin" class="hide center">
+    <h1>集計結果を抽選します</h1>
+    <div class="wheelbox">
+      <div class="pointer">▼</div>
+      <div class="wheel" id="wheel"></div>
+      <div class="hub"></div>
+    </div>
+    <p class="legend">🔥焚き火 / 🧖サウナ / 🎤カラオケ は合計20%<br>残り80%は…</p>
+    <p class="note">※回答内容は関係ありません</p>
+    <button class="submit" id="spinBtn">ルーレットを回す</button>
+  </section>
+
+  <section id="result" class="hide center">
+    <div class="res" id="rem"></div>
+    <p class="note" id="rlead"></p>
+    <p class="rname" id="rname"></p>
+    <p class="rmsg" id="rmsg"></p>
+    <button class="again" id="again">もう一回まわす</button>
+  </section>
+</main>
+
+<script>
+var choices=[
+  {e:"🔥",t:"焚き火でマシュマロ"},
+  {e:"🧖",t:"サウナと寒中水泳"},
+  {e:"🎤",t:"カラオケと酒"},
+  {e:"😶",t:"そんな気分じゃない"}
+];
+var results=[
+  {e:"🛋️",n:"家でゴロゴロ",m:"今日は何もしない日。布団とおやつとスマホで、ひたすらダラダラしよう。",c:144,w:288},
+  {e:"🔥",n:"焚き火でマシュマロ",m:"まさかの20%を引き当てた！火を眺めながらマシュマロを焼こう。",c:300,w:24},
+  {e:"🧖",n:"サウナと寒中水泳",m:"まさかの20%を引き当てた！汗かいて冷水にドボン、ととのおう。",c:324,w:24},
+  {e:"🎤",n:"カラオケと酒",m:"まさかの20%を引き当てた！全力で歌おう。飲みすぎには注意。",c:348,w:24}
+];
+var sel=-1,busy=false,cur=0;
+var opts=document.getElementById("opts"),submit=document.getElementById("submit");
+choices.forEach(function(c,i){
+  var b=document.createElement("button");
+  b.className="opt";b.type="button";
+  b.innerHTML='<span class="dot"></span><span>'+c.e+" "+c.t+"</span>";
+  b.addEventListener("click",function(){
+    sel=i;
+    Array.prototype.forEach.call(opts.children,function(x,j){x.classList.toggle("sel",j===i)});
+    submit.disabled=false;
+  });
+  opts.appendChild(b);
+});
+var wheel=document.getElementById("wheel");
+results.forEach(function(r,i){
+  var d=document.createElement("div");
+  var rad=i===0?85:122;
+  d.className="lab "+(i===0?"big":"sm");
+  d.style.transform="rotate("+r.c+"deg) translateY(-"+rad+"px) rotate(-"+r.c+"deg)";
+  d.innerHTML=i===0?"🛋️<br>家で<br>ゴロゴロ":r.e;
+  wheel.appendChild(d);
+});
+function show(id){["pick","spin","result"].forEach(function(x){document.getElementById(x).classList.toggle("hide",x!==id)})}
+function pickIndex(){
+  if(sel>=0&&sel<=2)return sel+1;
+  var r=Math.random();
+  if(r<0.8)return 0;
+  return 1+Math.min(2,Math.floor((r-0.8)/0.2*3));
+}
+var spinBtn=document.getElementById("spinBtn");
+function openWheel(){
+  show("spin");spinBtn.disabled=false;spinBtn.textContent="ルーレットを回す";
+}
+function go(){
+  if(busy)return;busy=true;spinBtn.disabled=true;spinBtn.textContent="回転中…";
+  var idx=pickIndex(),t=results[idx];
+  wheel.style.transition="none";
+  wheel.style.transform="rotate("+(cur%360)+"deg)";
+  void wheel.offsetWidth;
+  var jitter=(Math.random()-0.5)*(t.w-8);
+  var base=360*(12+Math.floor(Math.random()*3))-t.c+jitter;
+  cur=Math.ceil(cur/360)*360+base;
+  wheel.style.transition="transform 14s cubic-bezier(.1,.55,.05,1)";
+  wheel.style.transform="rotate("+cur+"deg)";
+  setTimeout(function(){
+    document.getElementById("rem").textContent=t.e;
+    document.getElementById("rlead").textContent=idx===0?"集計の結果…":"集計の結果…まさかの！";
+    document.getElementById("rname").textContent=t.n;
+    document.getElementById("rmsg").textContent=t.m;
+    show("result");busy=false;
+  },14600);
+}
+submit.addEventListener("click",openWheel);
+spinBtn.addEventListener("click",go);
+document.getElementById("again").addEventListener("click",function(){sel=-1;submit.disabled=true;Array.prototype.forEach.call(opts.children,function(x){x.classList.remove("sel")});show("pick")});
+</script>
+</body>
+</html>
